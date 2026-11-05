@@ -21,7 +21,24 @@
     <button id="installBtn" class="ghost" hidden>Install</button>
   </header>
 
-  <main>
+  <nav class="tabs" role="tablist">
+    <button id="tabLog" class="tab on" role="tab" aria-selected="true" data-view="viewLog">Log</button>
+    <button id="tabProg" class="tab" role="tab" aria-selected="false" data-view="viewProg">Programme</button>
+  </nav>
+
+  <main id="viewProg" hidden>
+    <section class="card">
+      <div class="row">
+        <label class="field"><span>Week</span><select id="progWeek"></select></label>
+        <label class="field"><span>Day</span><select id="progDay"></select></label>
+      </div>
+      <p class="muted" id="progPhase"></p>
+    </section>
+    <ul id="progList" class="plan"></ul>
+    <p class="warn">Suggested weights use your best logged e1RM x the target %1RM, rounded to 2.5 kg. Adjust to hit the RPE.</p>
+  </main>
+
+  <main id="viewLog">
     <section class="card">
       <h2>Log a set</h2>
       <form id="setForm" autocomplete="off">
@@ -78,6 +95,7 @@
   </main>
 
   <script src="calc.js"></script>
+  <script src="programme.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

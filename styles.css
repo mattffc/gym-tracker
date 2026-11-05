@@ -43,3 +43,17 @@ button { font: inherit; cursor: pointer; border-radius: 12px; border: 0; }
 .badge { display: inline-block; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
   color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 1px 8px; }
 .warn { color: var(--muted); font-size: 0.82rem; border-left: 3px solid var(--accent); padding: 6px 10px; margin: 20px 0 0; }
+.tabs { display: flex; gap: 6px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 4px; margin: 4px 0 0; }
+.tab { flex: 1; min-height: 44px; background: transparent; color: var(--muted); font-weight: 600; }
+.tab.on { background: var(--accent); color: var(--accent-ink); }
+select { width: 100%; min-height: 54px; padding: 12px 14px; font-size: 1.05rem; color: var(--text);
+  background: var(--bg); border: 1px solid var(--line); border-radius: 12px; }
+#progPhase { margin-top: -2px; }
+.plan { list-style: none; margin: 0; padding: 0; }
+.plan li { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; margin: 10px 0; }
+.plan .ph { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.plan .ph b { overflow-wrap: anywhere; }
+.plan .tgt { font-variant-numeric: tabular-nums; white-space: nowrap; font-weight: 700; }
+.plan .meta { color: var(--muted); font-size: 0.85rem; margin: 4px 0 10px; }
+.plan .sug { color: var(--text); }
+.plan .ghost { width: 100%; }
