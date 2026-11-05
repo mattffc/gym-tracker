@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Gym Tracker</title>
+  <meta name="theme-color" content="#111318">
+  <meta name="description" content="Offline gym log with estimated 1RM">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top">
+    <img src="icons/icon.svg" alt="" width="36" height="36">
+    <div>
+      <h1>Gym Tracker</h1>
+      <p class="sub" id="today"></p>
+    </div>
+    <button id="installBtn" class="ghost" hidden>Install</button>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>Log a set</h2>
+      <form id="setForm" autocomplete="off">
+        <label class="field">
+          <span>Exercise</span>
+          <input id="exName" list="exList" placeholder="e.g. Chest press" required>
+          <datalist id="exList"></datalist>
+        </label>
+        <div class="row">
+          <label class="field">
+            <span>Weight (kg)</span>
+            <input id="kg" type="number" inputmode="decimal" step="0.5" min="0" required>
+          </label>
+          <label class="field">
+            <span>Reps</span>
+            <input id="reps" type="number" inputmode="numeric" step="1" min="1" max="50" required>
+          </label>
+        </div>
+        <div class="e1rm" aria-live="polite">
+          <span>Estimated 1RM (Epley)</span>
+          <strong id="e1rmLive">--</strong>
+        </div>
+        <button type="submit" class="primary">Save set</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Today</h2>
+        <span class="muted" id="todayCount"></span>
+      </div>
+      <ul id="todayList" class="sets"></ul>
+      <p id="emptyToday" class="muted">No sets logged today yet.</p>
+    </section>
+
+    <section class="card">
+      <h2>Best e1RM</h2>
+      <ul id="bestList" class="sets"></ul>
+      <p id="emptyBest" class="muted">Your best estimated 1RM per exercise will show here.</p>
+    </section>
+
+    <section>
+      <h2 class="section-title">Coming soon</h2>
+      <div class="soon-grid">
+        <div class="soon"><span class="badge">Soon</span><h3>Progress charts</h3><p>Best e1RM and volume over time, with PR markers.</p></div>
+        <div class="soon"><span class="badge">Soon</span><h3>Progression helper</h3><p>Next session's weight, e.g. +2.5 kg when every set hits target at RPE 8 or less.</p></div>
+        <div class="soon"><span class="badge">Soon</span><h3>Plateau alerts</h3><p>A flag when a lift has had no e1RM PR in 4+ weeks.</p></div>
+        <div class="soon"><span class="badge">Soon</span><h3>Backup &amp; export</h3><p>JSON backup and restore, plus CSV export.</p></div>
+        <div class="soon"><span class="badge">Soon</span><h3>RPE and full sessions</h3><p>RPE-adjusted e1RM, Brzycki, and "repeat last session".</p></div>
+      </div>
+    </section>
+
+    <p class="warn">Your data is stored only on this phone, in this browser. Clearing site data or uninstalling the app deletes it. Backup export is coming soon.</p>
+  </main>
+
+  <script src="calc.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
