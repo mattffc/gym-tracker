@@ -6,10 +6,13 @@ An offline gym log you install from the browser. No app store, no account, no se
 
 **Live:** https://mattffc.github.io/gym-tracker/
 
-## Status (2026-11-05): painted door v0
+## Status (2026-11-05): v1
 
-- Works now: log a set (exercise, kg, reps), with exercise autocomplete and the last weight and reps filled in for you. Shows estimated 1RM (Epley) as you type. Lists today's sets and your best e1RM per exercise. Installs as an app and works offline.
-- Coming soon (shown as cards in the app): progress charts, progression helper, plateau alerts, JSON/CSV backup, RPE-adjusted e1RM and full sessions. `calc.js` already has the maths for these (Epley, Brzycki, RPE table, plateau check, next-weight suggestion).
+- **Log:** exercise, kg, reps and optional RPE, with autocomplete and the last set filled in. Live e1RM (RPE-adjusted when you give an RPE, otherwise Epley). Today's sets and best e1RM per lift.
+- **Programme:** the 16-week, 5-day template (sets x reps, %1RM, RPE, rest, tempo), suggested kg from your best e1RM, and "Log this".
+- **Progress:** best-e1RM chart per lift with PRs marked, a next-session suggestion (+2.5 kg when every set hit target at RPE 8 or less, hold or back off otherwise), session history, and plateau alerts (no PR in 4+ weeks while still training the lift).
+- **Backup:** save a JSON backup, restore it (merges, no duplicates), export CSV.
+- Installs as an app and works offline.
 
 ## Install on Android
 
@@ -22,7 +25,7 @@ An offline gym log you install from the browser. No app store, no account, no se
 Everything is saved in the browser's local storage on your phone. Nothing is uploaded, and nothing personal is in this repo.
 
 - Clearing Chrome's site data, or uninstalling the app, **deletes your log**.
-- Export and backup aren't built yet, so for now there's no way to move your data to another device.
+- Use **Save backup** on the Log tab now and then, and **Restore** to move your log to another phone.
 
 ## Development
 

@@ -24,6 +24,7 @@
   <nav class="tabs" role="tablist">
     <button id="tabLog" class="tab on" role="tab" aria-selected="true" data-view="viewLog">Log</button>
     <button id="tabProg" class="tab" role="tab" aria-selected="false" data-view="viewProg">Programme</button>
+    <button id="tabStats" class="tab" role="tab" aria-selected="false" data-view="viewStats">Progress</button>
   </nav>
 
   <main id="viewProg" hidden>
@@ -36,6 +37,28 @@
     </section>
     <ul id="progList" class="plan"></ul>
     <p class="warn">Suggested weights use your best logged e1RM x the target %1RM, rounded to 2.5 kg. Adjust to hit the RPE.</p>
+  </main>
+
+  <main id="viewStats" hidden>
+    <section class="card" id="plateauCard" hidden>
+      <h2>Plateau alerts</h2>
+      <ul id="plateauList" class="sets"></ul>
+    </section>
+    <section class="card">
+      <label class="field"><span>Exercise</span><select id="statEx"></select></label>
+      <div id="chart" class="chart"></div>
+      <p class="muted" id="chartNote"></p>
+    </section>
+    <section class="card" id="nextCard" hidden>
+      <h2>Next session</h2>
+      <p class="next" id="nextText"></p>
+      <p class="muted" id="nextWhy"></p>
+    </section>
+    <section class="card">
+      <h2>History</h2>
+      <ul id="histList" class="sets"></ul>
+    </section>
+    <p id="emptyStats" class="muted">Log a few sets and your progress shows here.</p>
   </main>
 
   <main id="viewLog">
@@ -56,9 +79,13 @@
             <span>Reps</span>
             <input id="reps" type="number" inputmode="numeric" step="1" min="1" max="50" required>
           </label>
+          <label class="field">
+            <span>RPE</span>
+            <input id="rpe" type="number" inputmode="decimal" step="0.5" min="5" max="10" placeholder="opt.">
+          </label>
         </div>
         <div class="e1rm" aria-live="polite">
-          <span>Estimated 1RM (Epley)</span>
+          <span id="e1rmLabel">Estimated 1RM (Epley)</span>
           <strong id="e1rmLive">--</strong>
         </div>
         <button type="submit" class="primary">Save set</button>
@@ -80,18 +107,19 @@
       <p id="emptyBest" class="muted">Your best estimated 1RM per exercise will show here.</p>
     </section>
 
-    <section>
-      <h2 class="section-title">Coming soon</h2>
-      <div class="soon-grid">
-        <div class="soon"><span class="badge">Soon</span><h3>Progress charts</h3><p>Best e1RM and volume over time, with PR markers.</p></div>
-        <div class="soon"><span class="badge">Soon</span><h3>Progression helper</h3><p>Next session's weight, e.g. +2.5 kg when every set hits target at RPE 8 or less.</p></div>
-        <div class="soon"><span class="badge">Soon</span><h3>Plateau alerts</h3><p>A flag when a lift has had no e1RM PR in 4+ weeks.</p></div>
-        <div class="soon"><span class="badge">Soon</span><h3>Backup &amp; export</h3><p>JSON backup and restore, plus CSV export.</p></div>
-        <div class="soon"><span class="badge">Soon</span><h3>RPE and full sessions</h3><p>RPE-adjusted e1RM, Brzycki, and "repeat last session".</p></div>
+    <section class="card">
+      <h2>Backup</h2>
+      <p class="muted">Save a backup file now and then (Drive, email to yourself). Restore merges it into this phone's log.</p>
+      <div class="btns">
+        <button id="expJson" class="ghost">Save backup</button>
+        <button id="impJson" class="ghost">Restore</button>
+        <button id="expCsv" class="ghost">Export CSV</button>
       </div>
+      <input id="impFile" type="file" accept="application/json,.json" hidden>
+      <p class="muted" id="backupNote"></p>
     </section>
 
-    <p class="warn">Your data is stored only on this phone, in this browser. Clearing site data or uninstalling the app deletes it. Backup export is coming soon.</p>
+    <p class="warn">Your data is stored only on this phone, in this browser. Clearing site data or uninstalling the app deletes it, so save a backup now and then.</p>
   </main>
 
   <script src="calc.js"></script>

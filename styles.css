@@ -57,3 +57,15 @@ select { width: 100%; min-height: 54px; padding: 12px 14px; font-size: 1.05rem; 
 .plan .meta { color: var(--muted); font-size: 0.85rem; margin: 4px 0 10px; }
 .plan .sug { color: var(--text); }
 .plan .ghost { width: 100%; }
+.btns { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 6px; }
+.btns .ghost { flex: 1; min-width: 110px; }
+.chart svg { width: 100%; height: auto; display: block; }
+.chart .grid { stroke: var(--line); stroke-width: 1; }
+.chart .ax { fill: var(--muted); font-size: 16px; }
+.chart .ln { fill: none; stroke: var(--text); stroke-width: 2; stroke-linejoin: round; }
+.chart .pt { fill: var(--card); stroke: var(--text); stroke-width: 2; }
+.chart .pr { fill: var(--accent); stroke: var(--accent); }
+.next { font-size: 1.5rem; font-weight: 700; margin: 0 0 4px; font-variant-numeric: tabular-nums; }
+.sets li.hist { display: block; }
+.hrow { display: flex; justify-content: space-between; gap: 10px; }
+.hrow .num { color: var(--text); }
