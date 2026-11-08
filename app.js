@@ -79,9 +79,9 @@
     return b;
   }
   function num(x) { var n = parseFloat(x); return isFinite(n) ? n : null; }
-  function lastLogged(name) {
+  function lastLogged(name, before) {
     var k = C.normName(name);
-    for (var i = sets.length - 1; i >= 0; i--) if (C.normName(sets[i].ex) === k) return sets[i];
+    for (var i = sets.length - 1; i >= 0; i--) if (C.normName(sets[i].ex) === k && (!before || sets[i].date < before)) return sets[i];
     return null;
   }
 
@@ -144,7 +144,7 @@
     if (x.rest) chips.appendChild(el('span', 'chip', 'rest ' + x.rest));
     if (x.tempo) chips.appendChild(el('span', 'chip', String(x.tempo).toLowerCase()));
     card.appendChild(chips);
-    var last = lastLogged(x.name);
+    var last = lastLogged(x.name, todayStr()) || lastLogged(x.name);
     var hint = [];
     if (x.note) hint.push(x.note);
     if (x.pct && !sug) hint.push('Set your training 1RM in Data → Settings for a suggested weight.');
@@ -367,7 +367,7 @@
     var name = selEx.value, wk = workouts();
     var hist = name ? C.exerciseHistory(wk, name, 'rpe') : [];
     var drawn = lineChart($('chart'), hist.map(function (h) { return { date: h.date, v: h.best, pr: h.pr }; }), 'kg');
-    $('chartNote').textContent = drawn ? 'Best e1RM per session (RPE-adjusted where you logged RPE). Orange = PR.' : hist.length ? 'Log this lift on another day to see a trend.' : '';
+    $('chartNote').textContent = drawn ? 'Best e1RM per session (RPE-adjusted where you logged RPE). Filled dots are PRs.' : hist.length ? 'Log this lift on another day to see a trend.' : '';
     var lastH = hist[hist.length - 1], sug = lastH ? C.suggestNext(lastH.sets, { increment: 2.5 }) : null;
     $('nextBox').hidden = !sug;
     if (sug) {
