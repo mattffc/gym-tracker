@@ -151,26 +151,53 @@
     card.appendChild(go);
     return card;
   }
+  // Working weight to put on the bar for a prescribed exercise: {kg, why, lo?, hi?} or null.
+  // 1) % of 1RM x reference 1RM; 2) progression from the last session of this exercise;
+  // 3) for lift variants with an RPE target, the RPE chart x the lift's 1RM.
+  function suggestKg(x, last) {
+    var ref, reps = firstNum(x.reps), t = C.parseRange(x.rpe);
+    if (x.pct && (ref = refOneRm(x.name))) {
+      var kg = round25(ref * x.pct / 100);
+      return { kg: kg, lo: kg - 5, hi: kg, why: x.pct + '% of ' + C.round1(ref) + ' kg 1RM' + (x.rpe ? '. Adjust within the range to land on RPE ' + x.rpe : '') };
+    }
+    if (last) {
+      var day = sets.filter(function (s) { return C.normName(s.ex) === C.normName(x.name) && s.date === last.date; })
+        .map(function (s) { return { w: s.kg, r: s.reps, rpe: s.rpe }; });
+      var inc = /\bdb\b|dumbbell/i.test(x.name) ? 2 : last.kg < 20 ? 1 : 2.5;
+      var rr = C.parseRange(x.reps); // double progression: add weight once the top of a rep range is hit
+      var n = C.suggestNext(day, { increment: inc, targetReps: rr ? rr.hi : null, maxRpe: t ? t.hi : 8 });
+      if (n) return { kg: n.weight, why: (n.action === 'up' ? '▲ ' : n.action === 'down' ? '▼ ' : '= ') + 'last time ' + shortDate(last.date) + ': ' + n.reason };
+    }
+    if (C.liftCat(x.name) && t && reps && (ref = refOneRm(x.name))) {
+      var pct = C.rpePercent(reps, t.mid);
+      if (pct) return { kg: round25(ref * pct / 100), why: reps + ' reps @ RPE ' + t.mid + ' ≈ ' + C.round1(pct) + '% of ' + C.round1(ref) + ' kg' };
+    }
+    return null;
+  }
   function exCard(b, wi, di, x, ei, logged) {
     var card = el('section', 'ex'), n = firstNum(x.sets) || 1, done = 0;
     var h = el('div', 'ex-h'); h.appendChild(el('b', null, x.name)); h.appendChild(el('span', 'tgt', (x.sets || '?') + ' × ' + (x.reps || '?')));
     card.appendChild(h);
-    var chips = el('div', 'chips'), sug = null;
-    if (x.pct) {
-      var ref = refOneRm(x.name);
-      if (ref) { var hi = round25(ref * x.pct / 100); sug = { lo: hi - 5, hi: hi, mid: hi - 2.5 }; }
-      chips.appendChild(el('span', 'chip', x.pct + '% 1RM'));
+    var last = lastLogged(x.name, todayStr()) || lastLogged(x.name);
+    var sug = suggestKg(x, last);
+    if (sug) {
+      var sb = el('div', 'sugbox');
+      sb.appendChild(el('span', 'sl', 'Suggested'));
+      sb.appendChild(el('strong', null, sug.kg + ' kg'));
+      sb.appendChild(el('span', 'sw', sug.why));
+      card.appendChild(sb);
     }
-    if (sug) chips.appendChild(el('span', 'chip k', sug.lo + '–' + sug.hi + ' kg'));
+    var chips = el('div', 'chips');
+    if (x.pct) chips.appendChild(el('span', 'chip', x.pct + '% 1RM'));
+    if (sug && sug.lo) chips.appendChild(el('span', 'chip', 'range ' + sug.lo + '–' + sug.hi + ' kg'));
     if (x.rpe) chips.appendChild(el('span', 'chip k', 'RPE ' + x.rpe));
     if (x.rest) chips.appendChild(el('span', 'chip', 'rest ' + x.rest));
     if (x.tempo) chips.appendChild(el('span', 'chip', String(x.tempo).toLowerCase()));
     card.appendChild(chips);
-    var last = lastLogged(x.name, todayStr()) || lastLogged(x.name);
     var hint = [];
     if (x.note) hint.push(x.note);
     if (x.pct && !sug) hint.push('Enter your 1RMs above to see the kg.');
-    if (!x.pct && !last) hint.push('Pick a weight you can do for ' + (x.reps || 'the reps') + (x.rpe ? ' at RPE ' + x.rpe : '') + '. The app remembers it for next time.');
+    if (!sug && !x.pct) hint.push('Pick a weight you can do for ' + (x.reps || 'the reps') + (x.rpe ? ' at RPE ' + x.rpe : '') + '. The app suggests from it next time.');
     if (last) hint.push('Last: ' + last.kg + ' kg × ' + last.reps + (last.rpe ? ' @' + last.rpe : '') + ' (' + shortDate(last.date) + ')');
     if (hint.length) card.appendChild(el('p', 'hint', hint.join(' · ')));
     var hdr = el('div', 'srow hdr');
@@ -187,7 +214,7 @@
       var rr = el('input'); rr.type = 'number'; rr.inputMode = 'decimal'; rr.step = '0.5'; rr.min = '5'; rr.max = '10'; rr.setAttribute('aria-label', 'actual RPE set ' + (si + 1));
       if (got) { kg.value = got.kg; rp.value = got.reps; rr.value = got.rpe || ''; prevKg = got.kg; }
       else {
-        kg.value = prevKg != null ? prevKg : sug ? sug.mid : last ? last.kg : '';
+        kg.value = prevKg != null ? prevKg : sug ? sug.kg : last ? last.kg : '';
         if (kg.value === '') kg.placeholder = 'kg';
         var tr = firstNum(x.reps); rp.value = /max/i.test(String(x.reps)) ? '' : tr != null ? tr : '';
       }

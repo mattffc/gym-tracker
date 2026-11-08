@@ -1,10 +1,10 @@
 // Gym Tracker service worker: cache-first app shell so it works offline.
-var CACHE = 'gym-tracker-v6';
+var CACHE = 'gym-tracker-v8';
 var SHELL = ['./', 'index.html', 'app.js', 'calc.js', 'programme.js', 'styles.css', 'manifest.webmanifest',
   'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
 
 self.addEventListener('install', function (e) {
-  e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(SHELL); }).then(function () { return self.skipWaiting(); }));
+  e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(SHELL.map(function (u) { return new Request(u, { cache: 'reload' }); })); }).then(function () { return self.skipWaiting(); }));
 });
 
 self.addEventListener('activate', function (e) {

@@ -132,9 +132,10 @@
     var maxRpe = rpes.length ? Math.max.apply(null, rpes) : null;
     var missedBy = Math.max.apply(null, work.map(function (s) { return target - num(s.r); }));
 
-    if (allHit && (maxRpe === null || maxRpe <= 8)) {
+    var cap = num(opts.maxRpe) || 8;
+    if (allHit && (maxRpe === null || maxRpe <= cap)) {
       return { weight: round1(top + inc), reps: target, action: 'up',
-        reason: 'All ' + work.length + ' sets hit ' + target + ' reps' + (maxRpe === null ? '' : ' at RPE ' + maxRpe + ' or less') + '.' };
+        reason: 'All ' + work.length + ' sets hit ' + target + ' reps' + (maxRpe === null ? '' : ' at RPE ' + maxRpe + (maxRpe < cap ? ' (target ' + cap + ')' : '')) + '.' };
     }
     if (!allHit && missedBy >= 2 && maxRpe !== null && maxRpe >= 9.5) {
       var down = Math.round(top * 0.95 / inc) * inc;
@@ -142,7 +143,7 @@
         reason: 'Missed target by ' + missedBy + ' reps at RPE ' + maxRpe + ': back off ~5%.' };
     }
     return { weight: top, reps: target, action: 'hold',
-      reason: allHit ? 'Target hit but RPE ' + maxRpe + ' > 8: repeat the weight.' : 'Not all sets hit ' + target + ' reps: repeat the weight.' };
+      reason: allHit ? 'Target hit but RPE ' + maxRpe + ' > ' + cap + ': repeat the weight.' : 'Not all sets hit ' + target + ' reps: repeat the weight.' };
   }
 
   // ---- Block / coach metrics (v2) ----

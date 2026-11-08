@@ -171,3 +171,8 @@ details.card[open] summary { margin-bottom: 14px; }
 .next { font-size: 1.2rem; font-weight: 800; margin: 0 0 2px; font-variant-numeric: tabular-nums; color: var(--text); }
 .setup { border-color: var(--accent); }
 .setup .row { margin-top: 12px; }
+.sugbox { display: grid; grid-template-columns: auto 1fr; column-gap: 10px; align-items: baseline; margin: 10px 0 2px 4px;
+  padding: 10px 12px; border-radius: 12px; background: var(--accent-2); }
+.sugbox .sl { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); }
+.sugbox strong { font-size: 1.5rem; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; color: var(--text); justify-self: end; }
+.sugbox .sw { grid-column: 1 / -1; font-size: 0.8rem; color: var(--text-2); margin-top: 2px; }
