@@ -126,8 +126,30 @@
     $('dayProgress').textContent = prog.got + ' / ' + prog.tot + ' sets logged';
 
     var box = $('dayPlan'); box.textContent = '';
+    var missing = ['squat', 'bench', 'deadlift'].filter(function (c) { return !num(settings.oneRM[c]) && !C.bestE1rmBetween(sets, c, '0000', '9999'); });
+    if (missing.length) box.appendChild(oneRmCard());
     b.weeks[s.w].days[s.d].ex.forEach(function (x, ei) { box.appendChild(exCard(b, s.w, s.d, x, ei, logged)); });
     renderExtra();
+  }
+  // Shown on Train until squat, bench and deadlift each have a 1RM (typed in, or from logged sets).
+  function oneRmCard() {
+    var card = el('section', 'card setup');
+    card.appendChild(el('h2', null, 'Your 1RMs'));
+    card.appendChild(el('p', 'muted', 'Enter your current 1RMs (or training maxes) so every % 1RM lift shows the kg to put on the bar.'));
+    var row = el('div', 'row'), inputs = {};
+    [['squat', 'Squat'], ['bench', 'Bench'], ['deadlift', 'Deadlift']].forEach(function (p) {
+      var f = el('label', 'field'); f.appendChild(el('span', null, p[1] + ' kg'));
+      var i = el('input'); i.type = 'number'; i.inputMode = 'decimal'; i.step = '2.5'; i.value = settings.oneRM[p[0]] || '';
+      inputs[p[0]] = i; f.appendChild(i); row.appendChild(f);
+    });
+    card.appendChild(row);
+    var go = el('button', 'primary', 'Save and show weights');
+    go.onclick = function () {
+      Object.keys(inputs).forEach(function (k) { var v = num(inputs[k].value); if (v) settings.oneRM[k] = v; });
+      put(K.settings, settings); renderTrain();
+    };
+    card.appendChild(go);
+    return card;
   }
   function exCard(b, wi, di, x, ei, logged) {
     var card = el('section', 'ex'), n = firstNum(x.sets) || 1, done = 0;
@@ -147,7 +169,8 @@
     var last = lastLogged(x.name, todayStr()) || lastLogged(x.name);
     var hint = [];
     if (x.note) hint.push(x.note);
-    if (x.pct && !sug) hint.push('Set your training 1RM in Data → Settings for a suggested weight.');
+    if (x.pct && !sug) hint.push('Enter your 1RMs above to see the kg.');
+    if (!x.pct && !last) hint.push('Pick a weight you can do for ' + (x.reps || 'the reps') + (x.rpe ? ' at RPE ' + x.rpe : '') + '. The app remembers it for next time.');
     if (last) hint.push('Last: ' + last.kg + ' kg × ' + last.reps + (last.rpe ? ' @' + last.rpe : '') + ' (' + shortDate(last.date) + ')');
     if (hint.length) card.appendChild(el('p', 'hint', hint.join(' · ')));
     var hdr = el('div', 'srow hdr');
@@ -165,6 +188,7 @@
       if (got) { kg.value = got.kg; rp.value = got.reps; rr.value = got.rpe || ''; prevKg = got.kg; }
       else {
         kg.value = prevKg != null ? prevKg : sug ? sug.mid : last ? last.kg : '';
+        if (kg.value === '') kg.placeholder = 'kg';
         var tr = firstNum(x.reps); rp.value = /max/i.test(String(x.reps)) ? '' : tr != null ? tr : '';
       }
       rr.placeholder = tR ? String(tR.mid) : 'RPE';
