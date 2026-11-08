@@ -176,3 +176,9 @@ details.card[open] summary { margin-bottom: 14px; }
 .sugbox .sl { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); }
 .sugbox strong { font-size: 1.5rem; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; color: var(--text); justify-self: end; }
 .sugbox .sw { grid-column: 1 / -1; font-size: 0.8rem; color: var(--text-2); margin-top: 2px; }
+textarea { width: 100%; min-height: 96px; padding: 10px 12px; font: inherit; font-size: 1rem; line-height: 1.4; color: var(--text);
+  background: var(--card-2); border: 1px solid var(--line); border-radius: 12px; resize: vertical; margin-top: 10px; }
+textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-2); }
+textarea::placeholder { color: var(--line-2); }
+#noteCard h2 { margin-bottom: 4px; }
+#dayNoteSaved { margin-top: 6px; font-size: 0.8rem; }

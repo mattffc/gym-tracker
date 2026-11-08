@@ -5,7 +5,7 @@
   var $ = function (id) { return document.getElementById(id); };
   var C = window.GymCalc;
   var K = { sets: 'gymtracker.sets.v1', well: 'gymtracker.well.v1', blocks: 'gymtracker.blocks.v1',
-    settings: 'gymtracker.settings.v1', sel: 'gymtracker.sel.v2', stat: 'gymtracker.stat.v1' };
+    settings: 'gymtracker.settings.v1', notes: 'gymtracker.daynotes.v1', sel: 'gymtracker.sel.v2', stat: 'gymtracker.stat.v1' };
 
   function get(k, d) { try { var v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } }
   function put(k, v) {
@@ -40,6 +40,7 @@
   }
   function activeBlock() { return blocks.filter(function (b) { return b.active; })[0] || blocks[blocks.length - 1]; }
   var sel = get(K.sel, {});
+  var notes = get(K.notes, {}); // 'blockId|week|day' -> {text, updated}
 
   function saveSets() { return put(K.sets, sets); }
   function setKey(b, wi, di, ei, si) { return b.id + '|' + wi + '|' + di + '|' + ei + '|' + si; }
@@ -129,6 +130,10 @@
     var missing = ['squat', 'bench', 'deadlift'].filter(function (c) { return !num(settings.oneRM[c]) && !C.bestE1rmBetween(sets, c, '0000', '9999'); });
     if (missing.length) box.appendChild(oneRmCard());
     b.weeks[s.w].days[s.d].ex.forEach(function (x, ei) { box.appendChild(exCard(b, s.w, s.d, x, ei, logged)); });
+    var nk = b.id + '|' + s.w + '|' + s.d, nt = notes[nk];
+    $('dayNote').value = nt ? nt.text : '';
+    $('dayNote').dataset.key = nk;
+    $('dayNoteSaved').textContent = nt ? 'Saved ' + shortDate(nt.updated) + '.' : '';
     renderExtra();
   }
   // Shown on Train until squat, bench and deadlift each have a 1RM (typed in, or from logged sets).
@@ -246,6 +251,16 @@
     }
     saveSets(); var y = window.scrollY; renderTrain(); window.scrollTo(0, y);
   }
+  var noteTimer = null;
+  function saveNote() {
+    var ta = $('dayNote'), k = ta.dataset.key, t = ta.value.trim();
+    if (!k) return;
+    if (t) notes[k] = { text: t, updated: todayStr() }; else delete notes[k];
+    put(K.notes, notes);
+    $('dayNoteSaved').textContent = t ? 'Saved.' : '';
+  }
+  $('dayNote').addEventListener('input', function () { clearTimeout(noteTimer); $('dayNoteSaved').textContent = 'Saving…'; noteTimer = setTimeout(saveNote, 600); });
+  $('dayNote').addEventListener('blur', function () { clearTimeout(noteTimer); saveNote(); });
   $('selWeek').addEventListener('change', function () { sel = { blk: activeBlock().id, w: +this.value, d: 0 }; put(K.sel, sel); renderTrain(); });
   $('selDay').addEventListener('change', function () { sel.d = +this.value; put(K.sel, sel); renderTrain(); });
 
@@ -518,12 +533,19 @@
     });
     return {
       app: 'gym-tracker', type: 'block-report', version: 2, exported: new Date().toISOString(),
-      for_claude: 'This is my last training block from my Gym Tracker app: the plan, every set I logged (target vs actual RPE), my daily sleep, stress and bodyweight, and weekly coach metrics. ' +
+      for_claude: 'This is my last training block from my Gym Tracker app: the plan, every set I logged (target vs actual RPE), my notes on days I changed the plan (day_notes: injuries, swapped exercises, missing equipment), my daily sleep, stress and bodyweight, and weekly coach metrics. ' +
         'Please review how it went (strength trend, fatigue, adherence, recovery) and write my next 4-week block as a JSON file in the programme format below, starting the Monday after this block ends, so I can import it into the app.',
       athlete: { training_1rm_kg: { squat: num(settings.oneRM.squat), bench: num(settings.oneRM.bench), deadlift: num(settings.oneRM.deadlift) }, latest_bodyweight_kg: latestBw() },
       block: { name: b.name, start: from, end: to, weeks: b.weeks },
       adherence: adherence,
       sets: inBlock, checkins: wellIn, weekly: weekly, e1rm_trend: trend,
+      day_notes: b.weeks.reduce(function (acc, w, wi) {
+        w.days.forEach(function (d, di) {
+          var n = notes[b.id + '|' + wi + '|' + di];
+          if (n) acc.push({ week: wi + 1, day: d.day, week_of: C.addDays(from, wi * 7), written: n.updated, note: n.text });
+        });
+        return acc;
+      }, []),
       signals_now: C.signals(C.weeklyStats(sets, well), sets, todayStr()).map(function (s) { return s.text; }),
       programme_format: FORMAT.note
     };
@@ -598,7 +620,7 @@
 
   $('expJson').onclick = function () {
     download('gym-tracker-backup-' + todayStr() + '.json',
-      JSON.stringify({ app: 'gym-tracker', version: 2, exported: new Date().toISOString(), sets: sets, well: well, blocks: blocks, settings: settings }, null, 1), 'application/json');
+      JSON.stringify({ app: 'gym-tracker', version: 2, exported: new Date().toISOString(), sets: sets, well: well, blocks: blocks, notes: notes, settings: settings }, null, 1), 'application/json');
     $('backupNote').textContent = 'Saved ' + sets.length + ' sets, ' + Object.keys(well).length + ' check-ins, ' + blocks.length + ' blocks.';
   };
   $('expCsv').onclick = function () {
@@ -624,9 +646,10 @@
       sets = sets.concat(add).sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
       saveSets();
       var nw = 0; Object.keys(data.well || {}).forEach(function (d) { if (!well[d]) { well[d] = data.well[d]; nw++; } }); put(K.well, well);
+      var nn = 0; Object.keys(data.notes || {}).forEach(function (k) { if (!notes[k]) { notes[k] = data.notes[k]; nn++; } }); put(K.notes, notes);
       var nb = 0, ids = {}; blocks.forEach(function (b) { ids[b.id] = 1; });
       (data.blocks || []).forEach(function (b) { if (b && b.id && !ids[b.id] && Array.isArray(b.weeks)) { b.active = false; blocks.push(b); nb++; } }); put(K.blocks, blocks);
-      $('backupNote').textContent = 'Restored ' + add.length + ' new sets, ' + nw + ' check-ins, ' + nb + ' blocks.';
+      $('backupNote').textContent = 'Restored ' + add.length + ' new sets, ' + nw + ' check-ins, ' + nn + ' day notes, ' + nb + ' blocks.';
     }).catch(function () { $('backupNote').textContent = 'That file is not a Gym Tracker backup.'; });
     input.value = '';
   };

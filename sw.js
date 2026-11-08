@@ -1,5 +1,5 @@
 // Gym Tracker service worker: cache-first app shell so it works offline.
-var CACHE = 'gym-tracker-v8';
+var CACHE = 'gym-tracker-v9';
 var SHELL = ['./', 'index.html', 'app.js', 'calc.js', 'programme.js', 'styles.css', 'manifest.webmanifest',
   'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
 

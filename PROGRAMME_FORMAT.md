@@ -45,7 +45,7 @@ The app imports a training block from a JSON file (Data → Import programme). T
 
 ## The loop
 
-1. Train the block, logging every set (kg, reps, actual RPE) and a daily check-in (sleep, stress, bodyweight).
-2. At the end: Data → **Download report** (or Share). It contains the plan, every set with target vs actual RPE, check-ins, weekly tonnage / intensity / RPE drift / ACWR, the e1RM trend and adherence.
+1. Train the block, logging every set (kg, reps, actual RPE), a daily check-in (sleep, stress, bodyweight), and a note on any day that changed from the plan (swaps, pain, missing equipment).
+2. At the end: Data → **Download report** (or Share). It contains the plan, every set with target vs actual RPE, day notes, check-ins, weekly tonnage / intensity / RPE drift / ACWR, the e1RM trend and adherence.
 3. Give the report to Claude: "this is how the block went, give me the next 4 weeks". Claude replies with a programme file in this format.
 4. Data → **Import programme**. It becomes the active block; old blocks and logs are kept.

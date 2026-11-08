@@ -9,7 +9,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="styles.css?v=8">
+  <link rel="stylesheet" href="styles.css?v=9">
   <script>
     // Apply the saved theme before first paint (default: light).
     try { var t = (JSON.parse(localStorage.getItem('gymtracker.settings.v1')) || {}).theme || 'light';
@@ -48,6 +48,13 @@
       </div>
     </section>
     <div id="dayPlan"></div>
+
+    <section class="card" id="noteCard">
+      <h2>Notes for this day</h2>
+      <p class="muted">Anything that changed from the plan, e.g. "elbow sore, did DB press instead of dips" or "leg press taken, used hack squat". Included in the block report.</p>
+      <textarea id="dayNote" rows="4" placeholder="Did x instead of y because…"></textarea>
+      <p class="muted" id="dayNoteSaved"></p>
+    </section>
 
     <details class="card" id="extraCard">
       <summary><b>Log an extra set</b> <span class="muted">(not in the plan)</span></summary>
@@ -181,8 +188,8 @@
     </section>
   </main>
 
-  <script src="calc.js?v=8"></script>
-  <script src="programme.js?v=8"></script>
-  <script src="app.js?v=8"></script>
+  <script src="calc.js?v=9"></script>
+  <script src="programme.js?v=9"></script>
+  <script src="app.js?v=9"></script>
 </body>
 </html>
