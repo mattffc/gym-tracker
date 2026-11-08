@@ -4,12 +4,18 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Gym Tracker</title>
-  <meta name="theme-color" content="#111318">
-  <meta name="description" content="Offline gym log with estimated 1RM">
+  <meta name="theme-color" content="#f6f5f2">
+  <meta name="description" content="Offline training log: 4-week blocks, actual RPE, body metrics, coach dashboard">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="stylesheet" href="styles.css">
+  <script>
+    // Apply the saved theme before first paint (default: light).
+    try { var t = (JSON.parse(localStorage.getItem('gymtracker.settings.v1')) || {}).theme || 'light';
+      if (t === 'system') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.dataset.theme = t; } catch (e) { document.documentElement.dataset.theme = 'light'; }
+  </script>
 </head>
 <body>
   <header class="top">
@@ -22,48 +28,29 @@
   </header>
 
   <nav class="tabs" role="tablist">
-    <button id="tabLog" class="tab on" role="tab" aria-selected="true" data-view="viewLog">Log</button>
-    <button id="tabProg" class="tab" role="tab" aria-selected="false" data-view="viewProg">Programme</button>
-    <button id="tabStats" class="tab" role="tab" aria-selected="false" data-view="viewStats">Progress</button>
+    <button class="tab on" role="tab" aria-selected="true" data-view="viewTrain">Train</button>
+    <button class="tab" role="tab" aria-selected="false" data-view="viewBody">Body</button>
+    <button class="tab" role="tab" aria-selected="false" data-view="viewStats">Progress</button>
+    <button class="tab" role="tab" aria-selected="false" data-view="viewData">Data</button>
   </nav>
 
-  <main id="viewProg" hidden>
+  <!-- TRAIN: the block, day by day, with a row per prescribed set -->
+  <main id="viewTrain">
     <section class="card">
+      <p class="muted" id="blockName"></p>
       <div class="row">
-        <label class="field"><span>Week</span><select id="progWeek"></select></label>
-        <label class="field"><span>Day</span><select id="progDay"></select></label>
+        <label class="field"><span>Week</span><select id="selWeek"></select></label>
+        <label class="field"><span>Day</span><select id="selDay"></select></label>
       </div>
-      <p class="muted" id="progPhase"></p>
+      <div class="card-head">
+        <span class="muted" id="phase"></span>
+        <span class="muted" id="dayProgress"></span>
+      </div>
     </section>
-    <ul id="progList" class="plan"></ul>
-    <p class="warn">Suggested weights use your best logged e1RM x the target %1RM, rounded to 2.5 kg. Adjust to hit the RPE.</p>
-  </main>
+    <div id="dayPlan"></div>
 
-  <main id="viewStats" hidden>
-    <section class="card" id="plateauCard" hidden>
-      <h2>Plateau alerts</h2>
-      <ul id="plateauList" class="sets"></ul>
-    </section>
-    <section class="card">
-      <label class="field"><span>Exercise</span><select id="statEx"></select></label>
-      <div id="chart" class="chart"></div>
-      <p class="muted" id="chartNote"></p>
-    </section>
-    <section class="card" id="nextCard" hidden>
-      <h2>Next session</h2>
-      <p class="next" id="nextText"></p>
-      <p class="muted" id="nextWhy"></p>
-    </section>
-    <section class="card">
-      <h2>History</h2>
-      <ul id="histList" class="sets"></ul>
-    </section>
-    <p id="emptyStats" class="muted">Log a few sets and your progress shows here.</p>
-  </main>
-
-  <main id="viewLog">
-    <section class="card">
-      <h2>Log a set</h2>
+    <details class="card" id="extraCard">
+      <summary><b>Log an extra set</b> <span class="muted">(not in the plan)</span></summary>
       <form id="setForm" autocomplete="off">
         <label class="field">
           <span>Exercise</span>
@@ -71,55 +58,127 @@
           <datalist id="exList"></datalist>
         </label>
         <div class="row">
-          <label class="field">
-            <span>Weight (kg)</span>
-            <input id="kg" type="number" inputmode="decimal" step="0.5" min="0" required>
-          </label>
-          <label class="field">
-            <span>Reps</span>
-            <input id="reps" type="number" inputmode="numeric" step="1" min="1" max="50" required>
-          </label>
-          <label class="field">
-            <span>RPE</span>
-            <input id="rpe" type="number" inputmode="decimal" step="0.5" min="5" max="10" placeholder="opt.">
-          </label>
+          <label class="field"><span>kg</span><input id="kg" type="number" inputmode="decimal" step="0.5" min="0" required></label>
+          <label class="field"><span>Reps</span><input id="reps" type="number" inputmode="numeric" step="1" min="1" max="50" required></label>
+          <label class="field"><span>RPE</span><input id="rpe" type="number" inputmode="decimal" step="0.5" min="5" max="10" placeholder="opt."></label>
         </div>
-        <div class="e1rm" aria-live="polite">
-          <span id="e1rmLabel">Estimated 1RM (Epley)</span>
-          <strong id="e1rmLive">--</strong>
-        </div>
+        <div class="e1rm" aria-live="polite"><span id="e1rmLabel">Estimated 1RM</span><strong id="e1rmLive">--</strong></div>
         <button type="submit" class="primary">Save set</button>
       </form>
-    </section>
+      <ul id="extraList" class="sets"></ul>
+    </details>
+  </main>
 
+  <!-- BODY: sleep, stress, bodyweight -->
+  <main id="viewBody" hidden>
     <section class="card">
-      <div class="card-head">
-        <h2>Today</h2>
-        <span class="muted" id="todayCount"></span>
+      <h2>Daily check-in</h2>
+      <form id="wellForm" autocomplete="off">
+        <label class="field"><span>Date</span><input id="wDate" type="date" required></label>
+        <div class="row">
+          <label class="field"><span>Sleep (h)</span><input id="wSleep" type="number" inputmode="decimal" step="0.25" min="0" max="16"></label>
+          <label class="field"><span>Stress /10</span><input id="wStress" type="number" inputmode="numeric" step="1" min="1" max="10"></label>
+          <label class="field"><span>Weight (kg)</span><input id="wBw" type="number" inputmode="decimal" step="0.1" min="30" max="250"></label>
+        </div>
+        <label class="field"><span>Note (optional)</span><input id="wNote" placeholder="e.g. sore lower back, travel"></label>
+        <button type="submit" class="primary">Save check-in</button>
+        <p class="muted" id="wellSaved"></p>
+      </form>
+    </section>
+    <section class="card">
+      <label class="field"><span>Trend</span>
+        <select id="wellMetric"><option value="bw">Bodyweight</option><option value="sleep">Sleep</option><option value="stress">Stress</option></select>
+      </label>
+      <div id="wellChart" class="chart"></div>
+      <p class="muted" id="wellChartNote"></p>
+    </section>
+    <section class="card">
+      <h2>Recent</h2>
+      <ul id="wellList" class="sets"></ul>
+      <p id="emptyWell" class="muted">No check-ins yet.</p>
+    </section>
+  </main>
+
+  <!-- PROGRESS: what a coach would look at -->
+  <main id="viewStats" hidden>
+    <section class="card">
+      <h2>Estimated 1RM now</h2>
+      <div class="kpis" id="kpis"></div>
+      <p class="muted" id="kpiNote"></p>
+    </section>
+    <section class="card" id="sigCard" hidden>
+      <h2>Coach notes</h2>
+      <ul id="sigList" class="sigs"></ul>
+    </section>
+    <section class="card">
+      <label class="field"><span>e1RM trend</span><select id="statEx"></select></label>
+      <div id="chart" class="chart"></div>
+      <p class="muted" id="chartNote"></p>
+      <div id="nextBox" hidden>
+        <p class="next" id="nextText"></p>
+        <p class="muted" id="nextWhy"></p>
       </div>
-      <ul id="todayList" class="sets"></ul>
-      <p id="emptyToday" class="muted">No sets logged today yet.</p>
     </section>
-
     <section class="card">
-      <h2>Best e1RM</h2>
-      <ul id="bestList" class="sets"></ul>
-      <p id="emptyBest" class="muted">Your best estimated 1RM per exercise will show here.</p>
+      <h2>Weekly load</h2>
+      <p class="muted">Per competition lift (variants count towards volume). RPE Δ = actual minus target. Intensity = avg kg as % of your best e1RM. ACWR = this week's tonnage vs your 4-week average (0.8–1.3 is the usual safe zone).</p>
+      <div class="tablewrap"><table id="weekTable" class="wt"></table></div>
     </section>
+    <section class="card" id="plateauCard" hidden>
+      <h2>Plateau alerts</h2>
+      <ul id="plateauList" class="sets"></ul>
+    </section>
+    <section class="card">
+      <h2>History</h2>
+      <ul id="histList" class="sets"></ul>
+    </section>
+    <p id="emptyStats" class="muted">Log a few sessions and your progress shows here.</p>
+  </main>
 
+  <!-- DATA: export for Claude, import the next block, backup, settings -->
+  <main id="viewData" hidden>
+    <section class="card">
+      <h2>End of block: send to Claude</h2>
+      <p class="muted">Exports this block's plan, every set you logged (with target vs actual RPE), your check-ins and the weekly coach metrics in one file. Give it to Claude and ask for the next 4 weeks.</p>
+      <div class="btns">
+        <button id="expReport" class="ghost">Download report</button>
+        <button id="shareReport" class="ghost" hidden>Share report</button>
+      </div>
+      <p class="muted" id="reportNote"></p>
+    </section>
+    <section class="card">
+      <h2>Load the next block</h2>
+      <p class="muted">Pick the programme file Claude gives you. It's added as a new block and becomes the active one. Old blocks and logs are kept.</p>
+      <div class="btns"><button id="impProg" class="ghost">Import programme</button></div>
+      <input id="impProgFile" type="file" accept="application/json,.json" hidden>
+      <label class="field"><span>Active block</span><select id="blockSel"></select></label>
+      <label class="field"><span>Block start (a Monday)</span><input id="blockStart" type="date"></label>
+      <p class="muted" id="progNote"></p>
+    </section>
     <section class="card">
       <h2>Backup</h2>
-      <p class="muted">Save a backup file now and then (Drive, email to yourself). Restore merges it into this phone's log.</p>
+      <p class="muted">Everything is stored only on this phone. Save a backup now and then (Drive, email to yourself). Restore merges it in.</p>
       <div class="btns">
         <button id="expJson" class="ghost">Save backup</button>
         <button id="impJson" class="ghost">Restore</button>
-        <button id="expCsv" class="ghost">Export CSV</button>
+        <button id="expCsv" class="ghost">Sets CSV</button>
+        <button id="expWellCsv" class="ghost">Check-ins CSV</button>
       </div>
       <input id="impFile" type="file" accept="application/json,.json" hidden>
       <p class="muted" id="backupNote"></p>
     </section>
-
-    <p class="warn">Your data is stored only on this phone, in this browser. Clearing site data or uninstalling the app deletes it, so save a backup now and then.</p>
+    <section class="card">
+      <h2>Settings</h2>
+      <p class="muted">Training 1RMs are used for suggested weights until you've logged the lift with an RPE.</p>
+      <div class="row">
+        <label class="field"><span>Squat 1RM</span><input id="s1rmSquat" type="number" inputmode="decimal" step="2.5"></label>
+        <label class="field"><span>Bench 1RM</span><input id="s1rmBench" type="number" inputmode="decimal" step="2.5"></label>
+        <label class="field"><span>Deadlift 1RM</span><input id="s1rmDead" type="number" inputmode="decimal" step="2.5"></label>
+      </div>
+      <label class="field"><span>Theme</span>
+        <select id="theme"><option value="light">Light</option><option value="dark">Dark</option><option value="system">Match phone</option></select>
+      </label>
+    </section>
   </main>
 
   <script src="calc.js"></script>

@@ -9,3 +9,21 @@ near(C.rpeE1rm(100, 1, 10), 100, 'RPE single @10');
 assert.strictEqual(C.epley(0, 5), null);
 assert.strictEqual(C.suggestNext([{ w: 100, r: 5, rpe: 8 }, { w: 100, r: 5, rpe: 7.5 }]).weight, 102.5);
 console.log('all e1RM checks passed');
+// v2 coach metrics
+assert.strictEqual(C.mondayOf('2026-11-15'), '2026-11-09');
+assert.strictEqual(C.mondayOf('2026-11-09'), '2026-11-09');
+assert.strictEqual(C.liftCat('Squat (paused)'), 'squat');
+assert.ok(C.isMain('Bench Press') && !C.isMain('Bench Press (pin)') && !C.isMain('DB Bench press'));
+assert.deepStrictEqual(C.parseRange('6.5-8.5'), { lo: 6.5, hi: 8.5, mid: 7.5 });
+var ws = C.weeklyStats([
+  { date: '2026-11-09', ex: 'Squat', kg: 100, reps: 5, rpe: 8, trpe: '7-8' },
+  { date: '2026-11-10', ex: 'Squat (paused)', kg: 90, reps: 5 },
+  { date: '2026-11-16', ex: 'Squat', kg: 105, reps: 5, rpe: 8.5, trpe: '7-8' }
+], { '2026-11-09': { sleep: 7, stress: 4, bw: 82 }, '2026-11-11': { sleep: 6, bw: 82.4 } });
+assert.strictEqual(ws.length, 2);
+assert.strictEqual(ws[0].lifts.squat.sets, 2);
+assert.strictEqual(ws[0].lifts.squat.tonnage, 950);
+near(ws[0].lifts.squat.rpeDelta, 0.5, 'RPE delta');
+near(ws[0].well.sleep, 6.5, 'sleep avg');
+near(ws[1].lifts.squat.acwr, 525 / ((950 + 525) / 2), 'ACWR');
+console.log('all v2 checks passed');
