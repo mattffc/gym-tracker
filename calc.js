@@ -227,7 +227,7 @@
       // ACWR: this week's tonnage / mean weekly tonnage over the last 4 weeks (incl. this one).
       var win = list.slice(Math.max(0, i - 3), i + 1);
       var acwr = function (get) {
-        if (win.length < 2) return null;
+        if (win.length < 4) return null; // needs a full 4-week history, or a first real week reads as a "spike"
         var c = mean(win.map(get)); return c ? get(w) / c : null;
       };
       w.total.acwr = acwr(function (x) { return x.total.tonnage; });

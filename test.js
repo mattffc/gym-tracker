@@ -25,7 +25,7 @@ assert.strictEqual(ws[0].lifts.squat.sets, 2);
 assert.strictEqual(ws[0].lifts.squat.tonnage, 950);
 near(ws[0].lifts.squat.rpeDelta, 0.5, 'RPE delta');
 near(ws[0].well.sleep, 6.5, 'sleep avg');
-near(ws[1].lifts.squat.acwr, 525 / ((950 + 525) / 2), 'ACWR');
+assert.strictEqual(ws[1].lifts.squat.acwr, null); // under 4 weeks of history
 console.log('all v2 checks passed');
 // cardio: ACSM + heart-rate reserve VO2max estimate
 near(C.acsmVo2(10, 1, true), 3.5 + 0.2 * 166.67 + 0.9 * 166.67 * 0.01, 'ACSM run 10 km/h 1%');
