@@ -5,7 +5,8 @@
   var $ = function (id) { return document.getElementById(id); };
   var C = window.GymCalc;
   var K = { sets: 'gymtracker.sets.v1', well: 'gymtracker.well.v1', blocks: 'gymtracker.blocks.v1',
-    settings: 'gymtracker.settings.v1', notes: 'gymtracker.daynotes.v1', sel: 'gymtracker.sel.v2', stat: 'gymtracker.stat.v1' };
+    settings: 'gymtracker.settings.v1', notes: 'gymtracker.daynotes.v1', sel: 'gymtracker.sel.v2', stat: 'gymtracker.stat.v1',
+    cardio: 'gymtracker.cardio.v1' };
 
   function get(k, d) { try { var v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } }
   function put(k, v) {
@@ -41,6 +42,8 @@
   function activeBlock() { return blocks.filter(function (b) { return b.active; })[0] || blocks[blocks.length - 1]; }
   var sel = get(K.sel, {});
   var notes = get(K.notes, {}); // 'blockId|week|day' -> {text, updated}
+  var cardio = get(K.cardio, []); // [{id, date, type, where, min, km, speed, incline, hr, hrMax, rpe, garmin, note}]
+  settings.hr = settings.hr || {}; // {age, restHr, maxHr}
 
   function saveSets() { return put(K.sets, sets); }
   function setKey(b, wi, di, ei, si) { return b.id + '|' + wi + '|' + di + '|' + ei + '|' + si; }
@@ -135,6 +138,7 @@
     $('dayNote').dataset.key = nk;
     $('dayNoteSaved').textContent = nt ? 'Saved ' + shortDate(nt.updated) + '.' : '';
     renderExtra();
+    renderCardio();
   }
   // Shown on Train until squat, bench and deadlift each have a 1RM (typed in, or from logged sets).
   function oneRmCard() {
@@ -300,6 +304,86 @@
     if (saveSets()) { renderExtra(); if (navigator.vibrate) navigator.vibrate(30); $('reps').focus(); }
   });
 
+  // ---------- CARDIO ----------
+  var CF = { date: 'cDate', type: 'cType', where: 'cWhere', min: 'cMin', km: 'cKm', speed: 'cSpeed', incline: 'cIncline',
+    hr: 'cHr', hrMax: 'cHrMax', rpe: 'cRpe', garmin: 'cGarmin', note: 'cNote' };
+  var TEXT_F = { date: 1, type: 1, where: 1, note: 1 };
+  var editingCardio = null;
+  function cardioFromForm() {
+    var c = {};
+    Object.keys(CF).forEach(function (k) {
+      var v = $(CF[k]).value;
+      if (TEXT_F[k]) { v = v.trim(); if (v) c[k] = v; } else if (num(v) != null) c[k] = num(v);
+    });
+    return c;
+  }
+  function vo2Of(c) { return C.vo2maxEstimate(c, settings.hr); }
+  function cardioLine(c) {
+    var sp = C.cardioSpeed(c), bits = [c.min + ' min'];
+    if (c.km) bits.push(c.km + ' km');
+    if (sp) bits.push(C.round1(sp) + ' km/h');
+    if (c.incline != null) bits.push(c.incline + '%');
+    if (c.hr) bits.push('HR ' + c.hr + (c.hrMax ? '/' + c.hrMax : ''));
+    return bits.join(' · ');
+  }
+  function updateVo2Live() {
+    var c = cardioFromForm(), v = vo2Of(c), h = settings.hr;
+    $('cVo2Live').textContent = v ? v + ' ml/kg/min' : '--';
+    if (!v && c.hr && (!num(h.restHr) || !(num(h.age) || num(h.maxHr)))) $('cVo2Live').textContent = 'add age + resting HR in Data → Settings';
+  }
+  function fillCardioForm(c) {
+    editingCardio = c ? c.id : null;
+    Object.keys(CF).forEach(function (k) { $(CF[k]).value = c && c[k] != null ? c[k] : ''; });
+    if (!c) {
+      $('cDate').value = todayStr();
+      var last = cardio[cardio.length - 1]; // same machine and type as last time, most sessions repeat
+      if (last) { $('cType').value = last.type || 'Treadmill run'; $('cWhere').value = last.where || ''; }
+      else $('cType').value = 'Treadmill run';
+    }
+    $('cardioForm').querySelector('button[type=submit]').textContent = c ? 'Update session' : 'Save session';
+    $('cDel').hidden = !c;
+    updateVo2Live();
+  }
+  function renderCardio() {
+    if (!$('cDate').value) fillCardioForm(null);
+    var places = {}; cardio.forEach(function (c) { if (c.where) places[c.where] = 1; });
+    var dl = $('cWhereList'); dl.textContent = '';
+    Object.keys(places).sort().forEach(function (p) { var o = el('option'); o.value = p; dl.appendChild(o); });
+    var ul = $('cardioList'); ul.textContent = '';
+    cardio.slice().sort(function (a, b) { return a.date < b.date ? 1 : -1; }).slice(0, 8).forEach(function (c) {
+      var li = el('li', 'hist'), top = el('div', 'hrow'), v = vo2Of(c);
+      top.appendChild(el('span', 'name', shortDate(c.date) + ' · ' + (c.type || 'Cardio')));
+      top.appendChild(el('b', 'num', v ? 'VO2 ' + v : ''));
+      li.appendChild(top);
+      li.appendChild(el('span', 'muted', cardioLine(c) + (c.where ? ' · ' + c.where : '')));
+      if (c.note) li.appendChild(el('span', 'muted', c.note));
+      li.onclick = function () { fillCardioForm(c); $('cardioCard').scrollIntoView({ behavior: 'smooth' }); };
+      ul.appendChild(li);
+    });
+  }
+  Object.keys(CF).forEach(function (k) { $(CF[k]).addEventListener('input', updateVo2Live); });
+  $('cDel').onclick = function () {
+    if (!editingCardio || !confirm('Delete this cardio session?')) return;
+    cardio = cardio.filter(function (x) { return x.id !== editingCardio; }); put(K.cardio, cardio);
+    $('cSaved').textContent = 'Deleted.'; fillCardioForm(null); renderCardio();
+  };
+  $('cardioForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var c = cardioFromForm();
+    if (!c.date || !c.min) return;
+    if (editingCardio) {
+      var i = cardio.findIndex(function (x) { return x.id === editingCardio; });
+      c.id = editingCardio;
+      if (i >= 0) cardio[i] = c; else cardio.push(c);
+    } else { c.id = uid(); cardio.push(c); }
+    cardio.sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+    if (!put(K.cardio, cardio)) return;
+    var v = vo2Of(c);
+    $('cSaved').textContent = 'Saved ' + shortDate(c.date) + (v ? '. Estimated VO2max ' + v + '.' : '.');
+    if (navigator.vibrate) navigator.vibrate(30);
+    fillCardioForm(null); renderCardio();
+  });
+
   // ---------- charts ----------
   function svg(tag, attrs) {
     var e = document.createElementNS('http://www.w3.org/2000/svg', tag);
@@ -399,7 +483,7 @@
   function latestBw() { var d = Object.keys(well).sort().reverse().filter(function (k) { return well[k].bw != null; })[0]; return d ? well[d].bw : null; }
   function renderStats() {
     var today = todayStr(), names = exNames();
-    $('emptyStats').hidden = sets.length > 0;
+    $('emptyStats').hidden = sets.length > 0 || cardio.length > 0;
     // KPIs: best e1RM in the last 4 weeks vs the 4 before
     var kp = $('kpis'); kp.textContent = ''; var total = 0, have = 0;
     ['squat', 'bench', 'deadlift'].forEach(function (c) {
@@ -475,6 +559,7 @@
       pl.appendChild(li);
     });
     $('plateauCard').hidden = !pl.children.length;
+    renderCardioStats();
 
     var hl = $('histList'); hl.textContent = '';
     hist.slice().reverse().forEach(function (h) {
@@ -487,6 +572,27 @@
     });
   }
   $('statEx').addEventListener('change', function () { put(K.stat, this.value); renderStats(); });
+
+  // Cardio fitness: estimated VO2max per session (and Garmin's figure where logged), plus 4-week volume.
+  function renderCardioStats() {
+    var today = todayStr(), kp = $('cardioKpis'); kp.textContent = '';
+    var est = cardio.map(function (c) { return { date: c.date, v: vo2Of(c) }; }).filter(function (p) { return p.v; });
+    var recent = est.filter(function (p) { return p.date >= C.addDays(today, -27); }).map(function (p) { return p.v; });
+    var garmin = cardio.filter(function (c) { return c.garmin; });
+    var last4 = cardio.filter(function (c) { return c.date >= C.addDays(today, -27); });
+    var mins = last4.reduce(function (a, c) { return a + (c.min || 0); }, 0);
+    [['Est. VO2max', recent.length ? String(C.round1(C.mean(recent))) : est.length ? String(est[est.length - 1].v) : '--', recent.length ? 'avg, last 4 wk' : ''],
+     ['Garmin', garmin.length ? String(garmin[garmin.length - 1].garmin) : '--', garmin.length ? shortDate(garmin[garmin.length - 1].date) : 'not logged'],
+     ['Cardio', String(Math.round(mins)), 'min, last 4 wk (' + last4.length + ')']].forEach(function (k) {
+      var box = el('div', 'kpi'); box.appendChild(el('div', 'l', k[0])); box.appendChild(el('div', 'v', k[1])); box.appendChild(el('div', 'd', k[2])); kp.appendChild(box);
+    });
+    var drawn = lineChart($('vo2Chart'), est, 'ml/kg/min');
+    var h = settings.hr, need = !num(h.restHr) || !(num(h.age) || num(h.maxHr));
+    $('vo2Note').textContent = !cardio.length ? 'Log treadmill sessions on the Train tab to track cardio fitness.'
+      : need ? 'Add your age and resting HR in Data → Settings to get VO2max estimates.'
+      : (drawn ? 'Each point is one session: treadmill work rate (ACSM equations) scaled by how high your HR was relative to your reserve. ' : 'Log two or more treadmill sessions with avg HR to see a trend. ') +
+        'Single sessions are noisy (±10%); watch the trend over weeks, and compare like with like (same machine, same kind of session).';
+  }
 
   // ---------- DATA ----------
   function download(name, text, type) {
@@ -533,8 +639,8 @@
     });
     return {
       app: 'gym-tracker', type: 'block-report', version: 2, exported: new Date().toISOString(),
-      for_claude: 'This is my last training block from my Gym Tracker app: the plan, every set I logged (target vs actual RPE), my notes on days I changed the plan (day_notes: injuries, swapped exercises, missing equipment), my daily sleep, stress and bodyweight, and weekly coach metrics. ' +
-        'Please review how it went (strength trend, fatigue, adherence, recovery) and write my next 4-week block as a JSON file in the programme format below, starting the Monday after this block ends, so I can import it into the app.',
+      for_claude: 'This is my last training block from my Gym Tracker app: the plan, every set I logged (target vs actual RPE), my notes on days I changed the plan (day_notes: injuries, swapped exercises, missing equipment), my daily sleep, stress and bodyweight, weekly coach metrics, and my cardio sessions (cardio: type, machine, duration, speed, incline, heart rate, free-text notes, an estimated VO2max per session and the Garmin VO2max where logged). ' +
+        'Please review how it went (strength trend, fatigue, adherence, recovery, cardio fitness trend) and write my next 4-week block as a JSON file in the programme format below, starting the Monday after this block ends, so I can import it into the app.',
       athlete: { training_1rm_kg: { squat: num(settings.oneRM.squat), bench: num(settings.oneRM.bench), deadlift: num(settings.oneRM.deadlift) }, latest_bodyweight_kg: latestBw() },
       block: { name: b.name, start: from, end: to, weeks: b.weeks },
       adherence: adherence,
@@ -546,6 +652,12 @@
         });
         return acc;
       }, []),
+      cardio: cardio.filter(function (c) { return c.date >= C.addDays(from, -28) && c.date <= to; }).map(function (c) {
+        var o = {}; Object.keys(c).forEach(function (k) { if (k !== 'id') o[k] = c[k]; });
+        var sp = C.cardioSpeed(c), v = vo2Of(c); if (sp && !c.speed) o.speed_kmh_calc = C.round1(sp); if (v) o.vo2max_est = v;
+        return o;
+      }),
+      heart_rate: { age: num(settings.hr.age), resting_hr: num(settings.hr.restHr), max_hr: num(settings.hr.maxHr), max_hr_used: C.hrMax(settings.hr) },
       signals_now: C.signals(C.weeklyStats(sets, well), sets, todayStr()).map(function (s) { return s.text; }),
       programme_format: FORMAT.note
     };
@@ -589,6 +701,7 @@
     $('blockStart').value = activeBlock().start;
     $('s1rmSquat').value = settings.oneRM.squat || ''; $('s1rmBench').value = settings.oneRM.bench || ''; $('s1rmDead').value = settings.oneRM.deadlift || '';
     $('theme').value = settings.theme || 'light';
+    $('sAge').value = settings.hr.age || ''; $('sRestHr').value = settings.hr.restHr || ''; $('sMaxHr').value = settings.hr.maxHr || '';
   }
   $('impProg').onclick = function () { $('impProgFile').click(); };
   $('impProgFile').onchange = function () {
@@ -616,12 +729,15 @@
   [['s1rmSquat', 'squat'], ['s1rmBench', 'bench'], ['s1rmDead', 'deadlift']].forEach(function (p) {
     $(p[0]).addEventListener('change', function () { var v = num(this.value); if (v) settings.oneRM[p[1]] = v; else delete settings.oneRM[p[1]]; put(K.settings, settings); });
   });
+  [['sAge', 'age'], ['sRestHr', 'restHr'], ['sMaxHr', 'maxHr']].forEach(function (p) {
+    $(p[0]).addEventListener('change', function () { var v = num(this.value); if (v) settings.hr[p[1]] = v; else delete settings.hr[p[1]]; put(K.settings, settings); });
+  });
   $('theme').addEventListener('change', function () { settings.theme = this.value; put(K.settings, settings); applyTheme(); });
 
   $('expJson').onclick = function () {
     download('gym-tracker-backup-' + todayStr() + '.json',
-      JSON.stringify({ app: 'gym-tracker', version: 2, exported: new Date().toISOString(), sets: sets, well: well, blocks: blocks, notes: notes, settings: settings }, null, 1), 'application/json');
-    $('backupNote').textContent = 'Saved ' + sets.length + ' sets, ' + Object.keys(well).length + ' check-ins, ' + blocks.length + ' blocks.';
+      JSON.stringify({ app: 'gym-tracker', version: 2, exported: new Date().toISOString(), sets: sets, well: well, blocks: blocks, notes: notes, cardio: cardio, settings: settings }, null, 1), 'application/json');
+    $('backupNote').textContent = 'Saved ' + sets.length + ' sets, ' + Object.keys(well).length + ' check-ins, ' + cardio.length + ' cardio sessions, ' + blocks.length + ' blocks.';
   };
   $('expCsv').onclick = function () {
     var rows = [['date', 'week', 'day', 'exercise', 'kg', 'reps', 'rpe_actual', 'rpe_target', 'reps_target', 'pct_1rm', 'e1rm']].concat(sets.map(function (s) {
@@ -634,6 +750,13 @@
       var w = well[d]; return [d, w.sleep == null ? '' : w.sleep, w.stress == null ? '' : w.stress, w.bw == null ? '' : w.bw, w.note || ''];
     }));
     download('gym-checkins-' + todayStr() + '.csv', csv(rows), 'text/csv');
+  };
+  $('expCardioCsv').onclick = function () {
+    var rows = [['date', 'type', 'where', 'minutes', 'km', 'avg_kmh', 'incline_pct', 'avg_hr', 'max_hr', 'rpe', 'garmin_vo2max', 'vo2max_est', 'notes']].concat(cardio.map(function (c) {
+      var sp = C.cardioSpeed(c), v = vo2Of(c);
+      return [c.date, c.type || '', c.where || '', c.min || '', c.km || '', sp ? C.round1(sp) : '', c.incline == null ? '' : c.incline, c.hr || '', c.hrMax || '', c.rpe || '', c.garmin || '', v || '', c.note || ''];
+    }));
+    download('gym-cardio-' + todayStr() + '.csv', csv(rows), 'text/csv');
   };
   $('impJson').onclick = function () { $('impFile').click(); };
   $('impFile').onchange = function () {
@@ -649,7 +772,10 @@
       var nn = 0; Object.keys(data.notes || {}).forEach(function (k) { if (!notes[k]) { notes[k] = data.notes[k]; nn++; } }); put(K.notes, notes);
       var nb = 0, ids = {}; blocks.forEach(function (b) { ids[b.id] = 1; });
       (data.blocks || []).forEach(function (b) { if (b && b.id && !ids[b.id] && Array.isArray(b.weeks)) { b.active = false; blocks.push(b); nb++; } }); put(K.blocks, blocks);
-      $('backupNote').textContent = 'Restored ' + add.length + ' new sets, ' + nw + ' check-ins, ' + nn + ' day notes, ' + nb + ' blocks.';
+      var cids = {}; cardio.forEach(function (c) { cids[c.id] = 1; });
+      var nc = (data.cardio || []).filter(function (c) { return c && c.id && c.date && !cids[c.id]; });
+      cardio = cardio.concat(nc).sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; }); put(K.cardio, cardio);
+      $('backupNote').textContent = 'Restored ' + add.length + ' new sets, ' + nw + ' check-ins, ' + nn + ' day notes, ' + nc.length + ' cardio sessions, ' + nb + ' blocks.';
     }).catch(function () { $('backupNote').textContent = 'That file is not a Gym Tracker backup.'; });
     input.value = '';
   };

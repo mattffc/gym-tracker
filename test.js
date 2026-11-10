@@ -27,3 +27,12 @@ near(ws[0].lifts.squat.rpeDelta, 0.5, 'RPE delta');
 near(ws[0].well.sleep, 6.5, 'sleep avg');
 near(ws[1].lifts.squat.acwr, 525 / ((950 + 525) / 2), 'ACWR');
 console.log('all v2 checks passed');
+// cardio: ACSM + heart-rate reserve VO2max estimate
+near(C.acsmVo2(10, 1, true), 3.5 + 0.2 * 166.67 + 0.9 * 166.67 * 0.01, 'ACSM run 10 km/h 1%');
+near(C.hrMax({ age: 32 }), 185.6, 'Tanaka');
+var est = C.vo2maxEstimate({ type: 'Treadmill run', speed: 10, incline: 1, hr: 150 }, { age: 32, restHr: 55 });
+near(est, 3.5 + (C.acsmVo2(10, 1, true) - 3.5) / ((150 - 55) / (185.6 - 55)), 'VO2max est');
+assert.strictEqual(C.vo2maxEstimate({ type: 'Bike', speed: 25, hr: 150 }, { age: 32, restHr: 55 }), null);
+assert.strictEqual(C.vo2maxEstimate({ type: 'Treadmill run', speed: 10, hr: 80 }, { age: 32, restHr: 55 }), null);
+near(C.cardioSpeed({ km: 5, min: 30 }), 10, 'speed from distance');
+console.log('all cardio checks passed');

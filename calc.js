@@ -274,7 +274,40 @@
     return out;
   }
 
-  var api = { epley: epley, brzycki: brzycki, rpePercent: rpePercent, rpeE1rm: rpeE1rm, e1rm: e1rm,
+  // ---------- cardio ----------
+  // Speed in km/h for a session: the logged average, else distance / duration.
+  function cardioSpeed(c) {
+    var v = num(c.speed);
+    if (v) return v;
+    var km = num(c.km), min = num(c.min);
+    return km && min ? km / (min / 60) : null;
+  }
+  // Oxygen cost of treadmill (or flat outdoor) walking/running, ACSM metabolic equations, ml/kg/min.
+  // Running when the type says so or speed >= 8 km/h, else walking.
+  function acsmVo2(kmh, inclinePct, running) {
+    if (!(kmh > 0)) return null;
+    var S = kmh * 1000 / 60, G = (num(inclinePct) || 0) / 100;
+    return running ? 3.5 + 0.2 * S + 0.9 * S * G : 3.5 + 0.1 * S + 1.8 * S * G;
+  }
+  // Max HR: the measured one if given, else Tanaka (208 - 0.7 x age).
+  function hrMax(p) { return num(p.maxHr) || (num(p.age) ? 208 - 0.7 * num(p.age) : null); }
+  // VO2max estimate from one steady treadmill bout: work rate (ACSM) and heart-rate reserve (Swain: %HRR ~ %VO2R).
+  // Needs avg speed, avg HR, max HR (or age) and resting HR. Returns null outside a sensible HR range,
+  // because the HR-VO2 line is only roughly linear between ~50% and ~90% of reserve.
+  function vo2maxEstimate(c, p) {
+    var t = String(c.type || '');
+    if (!/treadmill|run|walk/i.test(t)) return null;
+    var kmh = cardioSpeed(c), hr = num(c.hr), rest = num(p.restHr), max = hrMax(p);
+    if (!kmh || !hr || !rest || !max || max <= rest) return null;
+    var frac = (hr - rest) / (max - rest);
+    if (frac < 0.5 || frac > 0.95) return null;
+    var running = /run/i.test(t) || (!/walk/i.test(t) && kmh >= 8);
+    var vo2 = acsmVo2(kmh, /outdoor/i.test(t) ? 0 : c.incline, running);
+    return round1(3.5 + (vo2 - 3.5) / frac);
+  }
+
+  var api = { cardioSpeed: cardioSpeed, acsmVo2: acsmVo2, hrMax: hrMax, vo2maxEstimate: vo2maxEstimate,
+    epley: epley, brzycki: brzycki, rpePercent: rpePercent, rpeE1rm: rpeE1rm, e1rm: e1rm,
     sessionVolume: sessionVolume, sessionBest: sessionBest, exerciseHistory: exerciseHistory,
     plateau: plateau, suggestNext: suggestNext, normName: normName, daysBetween: daysBetween, round1: round1,
     addDays: addDays, mondayOf: mondayOf, liftCat: liftCat, isMain: isMain, MAIN: MAIN, parseRange: parseRange,

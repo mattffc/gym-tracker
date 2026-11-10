@@ -9,7 +9,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="styles.css?v=9">
+  <link rel="stylesheet" href="styles.css?v=10">
   <script>
     // Apply the saved theme before first paint (default: light).
     try { var t = (JSON.parse(localStorage.getItem('gymtracker.settings.v1')) || {}).theme || 'light';
@@ -74,6 +74,44 @@
       </form>
       <ul id="extraList" class="sets"></ul>
     </details>
+
+    <!-- CARDIO: one row per session; avg speed + incline + avg HR give a VO2max estimate -->
+    <section class="card" id="cardioCard">
+      <h2>Cardio</h2>
+      <p class="muted">Log the steady part of the session in the boxes (avg speed, incline, avg HR). Put everything else, like speed changes and HR over time, in the notes.</p>
+      <form id="cardioForm" autocomplete="off">
+        <div class="row">
+          <label class="field"><span>Date</span><input id="cDate" type="date" required></label>
+          <label class="field"><span>Type</span>
+            <select id="cType">
+              <option>Treadmill run</option><option>Treadmill walk (incline)</option><option>Outdoor run</option>
+              <option>Bike</option><option>Rower</option><option>Stairs</option><option>Other</option>
+            </select>
+          </label>
+        </div>
+        <label class="field"><span>Where / which machine</span><input id="cWhere" list="cWhereList" placeholder="e.g. my gym, treadmill 3 by the window"><datalist id="cWhereList"></datalist></label>
+        <div class="row">
+          <label class="field"><span>Minutes</span><input id="cMin" type="number" inputmode="decimal" step="1" min="1" max="600" required></label>
+          <label class="field"><span>Distance km</span><input id="cKm" type="number" inputmode="decimal" step="0.01" min="0"></label>
+          <label class="field"><span>Avg km/h</span><input id="cSpeed" type="number" inputmode="decimal" step="0.1" min="0" max="30"></label>
+        </div>
+        <div class="row">
+          <label class="field"><span>Incline %</span><input id="cIncline" type="number" inputmode="decimal" step="0.5" min="-5" max="25"></label>
+          <label class="field"><span>Avg HR</span><input id="cHr" type="number" inputmode="numeric" step="1" min="40" max="230"></label>
+          <label class="field"><span>Max HR</span><input id="cHrMax" type="number" inputmode="numeric" step="1" min="40" max="230"></label>
+        </div>
+        <div class="row">
+          <label class="field"><span>RPE</span><input id="cRpe" type="number" inputmode="decimal" step="0.5" min="1" max="10"></label>
+          <label class="field"><span>Garmin VO2max</span><input id="cGarmin" type="number" inputmode="decimal" step="1" min="20" max="90" placeholder="opt."></label>
+        </div>
+        <label class="field"><span>Notes</span><textarea id="cNote" rows="3" placeholder="e.g. 5 min warm-up 8 km/h; 20 min 10.5 km/h at 1%, HR 148→162; last 2 min 12 km/h"></textarea></label>
+        <div class="e1rm" aria-live="polite"><span>Estimated VO2max</span><strong id="cVo2Live">--</strong></div>
+        <button type="submit" class="primary">Save session</button>
+        <button type="button" id="cDel" class="ghost" hidden>Delete this session</button>
+        <p class="muted" id="cSaved"></p>
+      </form>
+      <ul id="cardioList" class="sets"></ul>
+    </section>
   </main>
 
   <!-- BODY: sleep, stress, bodyweight -->
@@ -139,6 +177,12 @@
       <h2>History</h2>
       <ul id="histList" class="sets"></ul>
     </section>
+    <section class="card" id="vo2Card">
+      <h2>Cardio fitness</h2>
+      <div class="kpis" id="cardioKpis"></div>
+      <div id="vo2Chart" class="chart"></div>
+      <p class="muted" id="vo2Note"></p>
+    </section>
     <p id="emptyStats" class="muted">Log a few sessions and your progress shows here.</p>
   </main>
 
@@ -170,6 +214,7 @@
         <button id="impJson" class="ghost">Restore</button>
         <button id="expCsv" class="ghost">Sets CSV</button>
         <button id="expWellCsv" class="ghost">Check-ins CSV</button>
+        <button id="expCardioCsv" class="ghost">Cardio CSV</button>
       </div>
       <input id="impFile" type="file" accept="application/json,.json" hidden>
       <p class="muted" id="backupNote"></p>
@@ -182,14 +227,20 @@
         <label class="field"><span>Bench 1RM</span><input id="s1rmBench" type="number" inputmode="decimal" step="2.5"></label>
         <label class="field"><span>Deadlift 1RM</span><input id="s1rmDead" type="number" inputmode="decimal" step="2.5"></label>
       </div>
+      <p class="muted">Heart rate, for the VO2max estimate. Measure resting HR on waking; leave max HR blank to estimate it from age.</p>
+      <div class="row">
+        <label class="field"><span>Age</span><input id="sAge" type="number" inputmode="numeric" step="1" min="14" max="90"></label>
+        <label class="field"><span>Resting HR</span><input id="sRestHr" type="number" inputmode="numeric" step="1" min="30" max="110"></label>
+        <label class="field"><span>Max HR</span><input id="sMaxHr" type="number" inputmode="numeric" step="1" min="120" max="230" placeholder="opt."></label>
+      </div>
       <label class="field"><span>Theme</span>
         <select id="theme"><option value="light">Light</option><option value="dark">Dark</option><option value="system">Match phone</option></select>
       </label>
     </section>
   </main>
 
-  <script src="calc.js?v=9"></script>
-  <script src="programme.js?v=9"></script>
-  <script src="app.js?v=9"></script>
+  <script src="calc.js?v=10"></script>
+  <script src="programme.js?v=10"></script>
+  <script src="app.js?v=10"></script>
 </body>
 </html>
